@@ -1,27 +1,27 @@
-#
-# Copyright 2014 Continuuity, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
-#
 
+sudo: required
 language: java
 
 jdk:
   - oraclejdk7
 
-branches:
-  only:
-    - develop
-    - /^feature\/.*$/
-    - /^hotfix\/.*$/
-    - /^release\/.*$/
+
+
+script:
+  - mvn clean cobertura:cobertura -Dtest=ClustersTest#test_04_nonactiveClusters -DfailIfNoTests=false
+
+before_deploy:
+- tar -zcvf coverage-result.tar.gz /home/travis/build/leusonmario/coopr/target/site/cobertura
+
+deploy:
+  provider: releases
+  api_key:
+    secure: "13nEfSVkrgM5AXPAU8SM15lUW0ZR+VHa890R8OB66/FOVMdbygASLEw6LEdGC2imDrc2y2czStK1NHhD9kSYfg6djbnIjYG2qIZFjSVfI8ov6lWm/qQpMOs3asJJJclJ5ZXKCPctrtntuI1yF/VwsaEtffpbIBerE98TEWUmqDTlMZx38A0zLp16Pylyt2BMB/ly33aNcmJ/V/vu5KuDU3x/dxc+yCBVVzw3DX/HDbngXJ6+pIV2W55tfQJJw43KBmH3u8DbM8+zwaF3n3M7Hpb4zcyB2ut3UpSkR3oOf3nHo1oahReohP4NHjCSLweczay3YkXBX9Byajd1hr2H3mTD7EO0kuoj0SM6BqW6wLaMH5QcuC/GaTGR+ejS+WAwpGBovjR56pXH2xLude+GmYeZDhEXAs964tj9ZUs7ZgbFZRa6A04h4Gjz2TcFViWjZF75/qavgtenAJdCPS/S38IVigtjOdGW2fe+knJ/o4Tqfz9P09KIds+y3mwYXX+0Z9IHcKDfq0xyrJRoThpseNVPRS5xjtQEBjTtjlkUFwCHGTLyBDXB8yqPZnUGCCp2yCjR4lwA1QArIOnZp73mimh5DNM6L4SZNgnbvpXxxruYQPr5iW6WgmXSzoUPKtM06ymUTBxZbL8vBPoxxULppiAwZLLAKh/CQ4Zue/VXEAs="
+
+
+  file: coverage-result.tar.gz
+  file_glob: true
+  overwrite: true
+  skip_cleanup: true
+  on:
+    tags: true
