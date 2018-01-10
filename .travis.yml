@@ -1,67 +1,28 @@
-#
-# Copyright © 2014 Cask Data, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"); you may not
-# use this file except in compliance with the License. You may obtain a copy of
-# the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations under
-# the License.
-#
 
+sudo: required
 language: java
 
 jdk:
   - oraclejdk7
 ## Commenting it out by @ajainarayanan @gaarf as sauce doesn't taste good.
 
-# env:
-#   global:
-#     - secure: DHoIe2FobpAM/4ZKZX3acpBN/UPQn1FK+OJG87IuvCJ2xQbXMOimIL5l52/PgEbea9wQC+qxOaXhFkDS0SMq+AWw0Haa+b0xUG+D9SdRsMfipBmhHowKNAxRkVp1DE563cibpUv03DbS+XWL1xWv0xrc+ooPKdzZm2jWwAlW1AI=
-#     - secure: DIURQkS/L8U3TTXTtmhhDLdNJAfB2NqUMb6+K5EYwFS/C37tNPTl1ip23j/KC4PRboJtFNgVqQFo9ErsYY7xk6md6+JCB6Tl/4CzSvtZ6Z9xVssFPdKA6dOryelG6beckGoxfWxSw4zIcx2aODVIkMLR+/86Y+9XJ6pJbkfeGEo=
-#     - COOPR_SERVER_HOME=`pwd`/coopr-server
-#     - COOPR_SERVER_URI=http://127.0.0.1:55054
-#     - COOPR_USE_DUMMY_PROVISIONER=true
-# addons:
-#   sauce_connect: true
 
-branches:
-  only:
-    - develop
-    - /^feature\/.*$/
-    - /^hotfix\/.*$/
-    - /^release\/.*$/
-
-before_install:
-  - 'export CHROME_BIN=chromium-browser'
-  - 'export DISPLAY=:99.0'
-  - 'sh -e /etc/init.d/xvfb start'
-
-before_script:
-  - 'cd coopr-ngui && npm run build'
-  - 'npm start > /dev/null &'
-  - 'cd ..'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then cd coopr-server; fi'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then mvn clean package assembly:single -DskipTests; fi'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then cd ..; fi'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then java -cp coopr-server/target/*:coopr-e2e/config co.cask.coopr.runtime.ServerMain; fi >/dev/null 2>&1 &'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then java -cp coopr-server/target/*:coopr-e2e/config co.cask.coopr.runtime.MockProvisionerMain -p 55054; fi >/dev/null 2>&1 &'
-  - 'sleep 30' # give servers generous time to start
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then cd coopr-e2e; fi'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then npm run build; fi'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then cd ..; fi'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then bash coopr-server/templates/mock/load-mock.sh; fi'
 
 script:
-  - 'cd coopr-ngui'
-  - 'node ./node_modules/gulp/bin/gulp.js jshint'
-  - 'npm run test-single-run'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then cd ../coopr-e2e; fi'
-  - 'if [ -n "$SAUCE_ACCESS_KEY" ]; then npm run protractor; fi'
-  - 'cd ..'
-  - 'mvn test'
+  - mvn clean cobertura:cobertura -Dtest=SchedulerTest#testSuccessCallbacks -DfailIfNoTests=false
+
+before_deploy:
+- tar -zcvf coverage-result.tar.gz /home/travis/build/leusonmario/coopr/target/site/cobertura
+
+deploy:
+  provider: releases
+  api_key:
+    secure: "13nEfSVkrgM5AXPAU8SM15lUW0ZR+VHa890R8OB66/FOVMdbygASLEw6LEdGC2imDrc2y2czStK1NHhD9kSYfg6djbnIjYG2qIZFjSVfI8ov6lWm/qQpMOs3asJJJclJ5ZXKCPctrtntuI1yF/VwsaEtffpbIBerE98TEWUmqDTlMZx38A0zLp16Pylyt2BMB/ly33aNcmJ/V/vu5KuDU3x/dxc+yCBVVzw3DX/HDbngXJ6+pIV2W55tfQJJw43KBmH3u8DbM8+zwaF3n3M7Hpb4zcyB2ut3UpSkR3oOf3nHo1oahReohP4NHjCSLweczay3YkXBX9Byajd1hr2H3mTD7EO0kuoj0SM6BqW6wLaMH5QcuC/GaTGR+ejS+WAwpGBovjR56pXH2xLude+GmYeZDhEXAs964tj9ZUs7ZgbFZRa6A04h4Gjz2TcFViWjZF75/qavgtenAJdCPS/S38IVigtjOdGW2fe+knJ/o4Tqfz9P09KIds+y3mwYXX+0Z9IHcKDfq0xyrJRoThpseNVPRS5xjtQEBjTtjlkUFwCHGTLyBDXB8yqPZnUGCCp2yCjR4lwA1QArIOnZp73mimh5DNM6L4SZNgnbvpXxxruYQPr5iW6WgmXSzoUPKtM06ymUTBxZbL8vBPoxxULppiAwZLLAKh/CQ4Zue/VXEAs="
+
+
+  file: coverage-result.tar.gz
+  file_glob: true
+  overwrite: true
+  skip_cleanup: true
+  on:
+    tags: true
